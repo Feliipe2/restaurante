@@ -108,25 +108,95 @@ if (isset($_POST['export_excel'])) {
     exit;
 }
 // Función para exportar el menú a PDF
-if (isset($_POST['export_pdf'])) {
-    require 'tcpdf.php';
-    $pdf = new TCPDF();
-    $pdf->AddPage();
-    $html = '<h1>Reporte del Menú</h1><table border="1" cellpadding="5">
-             <tr><th>ID</th><th>Nombre</th><th>Descripción</th><th>Precio</th><th>Categoría</th></tr>';
-    
-    while ($row = $resultado_menu->fetch_assoc()) {
-        $html .= "<tr>
-                    <td>{$row['id']}</td>
-                    <td>{$row['nombre_plato']}</td>
-                    <td>{$row['descripcion']}</td>
-                    <td>{$row['precio']}</td>
-                    <td>{$row['categoria_nombre']}</td>
-                  </tr>";
+require('fpdf/fpdf.php');
+class PDF extends FPDF {
+    // Función para crear una celda con texto ajustable
+    function MultiCellRow($datos) {
+        $height = 6; // Altura mínima
+        $x = $this->GetX();
+        $y = $this->GetY();
+        
+        // Guardar la posición más alta
+        $max_y = $y;
+        
+        // Primera columna - ID
+        $this->MultiCell(20, $height, $datos['id'], 1, 'L');
+        $max_y = max($max_y, $this->GetY());
+        $this->SetXY($x + 20, $y);
+        
+        // Segunda columna - Nombre
+        $this->MultiCell(60, $height, $datos['nombre'], 1, 'L');
+        $max_y = max($max_y, $this->GetY());
+        $this->SetXY($x + 80, $y);
+        
+        // Tercera columna - Descripción
+        $this->MultiCell(90, $height, $datos['descripcion'], 1, 'L');
+        $max_y = max($max_y, $this->GetY());
+        $this->SetXY($x + 170, $y);
+        
+        // Cuarta columna - Precio
+        $this->MultiCell(30, $height, $datos['precio'], 1, 'R');
+        $max_y = max($max_y, $this->GetY());
+        $this->SetXY($x + 200, $y);
+        
+        // Quinta columna - Categoría
+        $this->MultiCell(50, $height, $datos['categoria'], 1, 'L');
+        $max_y = max($max_y, $this->GetY());
+        $this->SetXY($x + 250, $y);
+        
+        // Sexta columna - Disponibilidad
+        $this->MultiCell(25, $height, $datos['disponible'], 1, 'C');
+        $max_y = max($max_y, $this->GetY());
+        
+        // Establecer la posición para la siguiente fila
+        $this->SetXY($x, $max_y);
     }
-    $html .= '</table>';
-    $pdf->writeHTML($html);
-    $pdf->Output('menu.pdf', 'D');
+}
+
+if (isset($_POST['export_pdf'])) {
+    // Crear nuevo PDF
+    $pdf = new PDF('L', 'mm', 'A4');
+    $pdf->AddPage();
+    $pdf->SetMargins(10, 10, 10);
+    
+    // Título
+    $pdf->SetFont('Arial', 'B', 16);
+    $pdf->Cell(0, 10, 'Menu del Restaurante', 0, 1, 'C');
+    $pdf->Ln(5);
+    
+    // Encabezados de la tabla
+    $pdf->SetFont('Arial', 'B', 12);
+    $pdf->Cell(20, 10, 'ID', 1, 0, 'C');
+    $pdf->Cell(60, 10, 'Nombre', 1, 0, 'C');
+    $pdf->Cell(90, 10, 'Descripcion', 1, 0, 'C');
+    $pdf->Cell(30, 10, 'Precio', 1, 0, 'C');
+    $pdf->Cell(50, 10, 'Categoria', 1, 0, 'C');
+    $pdf->Cell(25, 10, 'Disponible', 1, 1, 'C');
+    
+    // Datos de la tabla
+    $pdf->SetFont('Arial', '', 11);
+    
+    // Consulta para obtener los datos
+    $consulta = "SELECT menu.*, categorias.nombre_categoria 
+                 FROM menu 
+                 LEFT JOIN categorias ON menu.id_categoria = categorias.id 
+                 ORDER BY menu.id ASC";
+    $resultado = $conn->query($consulta);
+    
+    while($row = $resultado->fetch_assoc()) {
+        $datos = array(
+            'id' => $row['id'],
+            'nombre' => utf8_decode($row['nombre_plato']),
+            'descripcion' => utf8_decode($row['descripcion']),
+            'precio' => '$' . number_format($row['precio'], 2),
+            'categoria' => utf8_decode($row['nombre_categoria']),
+            'disponible' => $row['disponibilidad'] ? 'Si' : 'No'
+        );
+        $pdf->MultiCellRow($datos);
+    }
+    
+    // Generar el PDF
+    $pdf->Output('D', 'menu_'.date('Y-m-d').'.pdf');
     exit;
 }
 ?>

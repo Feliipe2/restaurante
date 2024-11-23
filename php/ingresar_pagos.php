@@ -89,24 +89,74 @@ if (isset($_POST['export_excel'])) {
 
 // Exportar pagos a PDF
 if (isset($_POST['export_pdf'])) {
-    require 'tcpdf.php';
-    $pdf = new TCPDF();
-    $pdf->AddPage();
-    $html = '<h1>Reporte de Pagos</h1><table border="1" cellpadding="5">
-             <tr><th>ID</th><th>Cliente</th><th>Orden</th><th>Monto</th><th>Método de Pago</th></tr>';
-    
-    while ($row = $resultado_pagos->fetch_assoc()) {
-        $html .= "<tr>
-                    <td>{$row['id']}</td>
-                    <td>{$row['cliente_nombre']}</td>
-                    <td>{$row['orden_id']}</td>
-                    <td>{$row['monto']}</td>
-                    <td>{$row['metodo_pago']}</td>
-                  </tr>";
+    require('fpdf/fpdf.php');
+    class PDF extends FPDF {
+        function MultiCellRow($datos) {
+            $height = 6;
+            $x = $this->GetX();
+            $y = $this->GetY();
+            $max_y = $y;
+
+            $this->MultiCell(20, $height, $datos['id'], 1, 'L');
+            $max_y = max($max_y, $this->GetY());
+            $this->SetXY($x + 20, $y);
+
+            $this->MultiCell(60, $height, $datos['cliente'], 1, 'L');
+            $max_y = max($max_y, $this->GetY());
+            $this->SetXY($x + 80, $y);
+
+            $this->MultiCell(30, $height, $datos['orden'], 1, 'L');
+            $max_y = max($max_y, $this->GetY());
+            $this->SetXY($x + 110, $y);
+
+            $this->MultiCell(30, $height, $datos['monto'], 1, 'R');
+            $max_y = max($max_y, $this->GetY());
+            $this->SetXY($x + 140, $y);
+
+            $this->MultiCell(50, $height, $datos['metodo_pago'], 1, 'L');
+            $max_y = max($max_y, $this->GetY());
+
+            $this->SetXY($x, $max_y);
+        }
     }
-    $html .= '</table>';
-    $pdf->writeHTML($html);
-    $pdf->Output('pagos.pdf', 'D');
+
+    $pdf = new PDF('L', 'mm', 'A4');
+    $pdf->AddPage();
+    $pdf->SetMargins(10, 10, 10);
+
+    $pdf->SetFont('Arial', 'B', 16);
+    $pdf->Cell(0, 10, 'Reporte de Pagos', 0, 1, 'C');
+    $pdf->Ln(5);
+
+    $pdf->SetFont('Arial', 'B', 12);
+    $pdf->Cell(20, 10, 'ID', 1, 0, 'C');
+    $pdf->Cell(60, 10, 'Cliente', 1, 0, 'C');
+    $pdf->Cell(30, 10, 'Orden', 1, 0, 'C');
+    $pdf->Cell(30, 10, 'Monto', 1, 0, 'C');
+    $pdf->Cell(50, 10, 'Metodo de Pago', 1, 1, 'C');
+
+    $pdf->SetFont('Arial', '', 11);
+
+    $consulta = "SELECT pagos.id, clientes.nombre AS cliente_nombre, ordenes.id AS orden_id, pagos.monto, medios_de_pago.nombre_medio AS metodo_pago 
+                 FROM pagos 
+                 JOIN clientes ON pagos.id_cliente = clientes.id 
+                 JOIN ordenes ON pagos.id_orden = ordenes.id 
+                 JOIN medios_de_pago ON pagos.id_medio_pago = medios_de_pago.id 
+                 ORDER BY pagos.id ASC";
+    $resultado = $conn->query($consulta);
+
+    while($row = $resultado->fetch_assoc()) {
+        $datos = array(
+            'id' => $row['id'],
+            'cliente' => utf8_decode($row['cliente_nombre']),
+            'orden' => $row['orden_id'],
+            'monto' => '$' . number_format($row['monto'], 2),
+            'metodo_pago' => utf8_decode($row['metodo_pago'])
+        );
+        $pdf->MultiCellRow($datos);
+    }
+
+    $pdf->Output('D', 'pagos_'.date('Y-m-d').'.pdf');
     exit;
 }
 ?>

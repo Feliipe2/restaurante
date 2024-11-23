@@ -83,25 +83,70 @@ if (isset($_POST['export_excel'])) {
 }
 
 // Exportar clientes a PDF
-if (isset($_POST['export_pdf'])) {
-    require 'tcpdf.php';
-    $pdf = new TCPDF();
-    $pdf->AddPage();
-    $html = '<h1>Reporte de Clientes</h1><table border="1" cellpadding="5">
-             <tr><th>ID</th><th>Nombre</th><th>Email</th><th>Teléfono</th><th>Dirección</th></tr>';
-    
-    while ($row = $resultado_clientes->fetch_assoc()) {
-        $html .= "<tr>
-                    <td>{$row['id']}</td>
-                    <td>{$row['nombre']}</td>
-                    <td>{$row['email']}</td>
-                    <td>{$row['telefono']}</td>
-                    <td>{$row['direccion']}</td>
-                  </tr>";
+require('fpdf/fpdf.php');
+class PDF extends FPDF {
+    function MultiCellRow($datos) {
+        $height = 6;
+        $x = $this->GetX();
+        $y = $this->GetY();
+        $max_y = $y;
+        
+        $this->MultiCell(10, $height, $datos['id'], 1, 'L');
+        $max_y = max($max_y, $this->GetY());
+        $this->SetXY($x + 10, $y);
+        
+        $this->MultiCell(40, $height, $datos['nombre'], 1, 'L');
+        $max_y = max($max_y, $this->GetY());
+        $this->SetXY($x + 50, $y);
+        
+        $this->MultiCell(50, $height, $datos['email'], 1, 'L');
+        $max_y = max($max_y, $this->GetY());
+        $this->SetXY($x + 100, $y);
+        
+        $this->MultiCell(30, $height, $datos['telefono'], 1, 'L');
+        $max_y = max($max_y, $this->GetY());
+        $this->SetXY($x + 130, $y);
+        
+        $this->MultiCell(80, $height, $datos['direccion'], 1, 'L');
+        $max_y = max($max_y, $this->GetY());
+        
+        $this->SetXY($x, $max_y);
     }
-    $html .= '</table>';
-    $pdf->writeHTML($html);
-    $pdf->Output('clientes.pdf', 'D');
+}
+
+if (isset($_POST['export_pdf'])) {
+    $pdf = new PDF('L', 'mm', 'A4');
+    $pdf->AddPage();
+    $pdf->SetMargins(10, 10, 10);
+    
+    $pdf->SetFont('Arial', 'B', 16);
+    $pdf->Cell(0, 10, 'Reporte de Clientes', 0, 1, 'C');
+    $pdf->Ln(5);
+    
+    $pdf->SetFont('Arial', 'B', 12);
+    $pdf->Cell(10, 10, 'ID', 1, 0, 'C');
+    $pdf->Cell(40, 10, 'Nombre', 1, 0, 'C');
+    $pdf->Cell(50, 10, 'Email', 1, 0, 'C');
+    $pdf->Cell(30, 10, 'Telefono', 1, 0, 'C');
+    $pdf->Cell(80, 10, 'Direccion', 1, 1, 'C');
+    
+    $pdf->SetFont('Arial', '', 11);
+    
+    $consulta = "SELECT * FROM clientes ORDER BY nombre ASC";
+    $resultado = $conectar->query($consulta);
+    
+    while($row = $resultado->fetch_assoc()) {
+        $datos = array(
+            'id' => $row['id'],
+            'nombre' => utf8_decode($row['nombre']),
+            'email' => utf8_decode($row['email']),
+            'telefono' => $row['telefono'],
+            'direccion' => utf8_decode($row['direccion'])
+        );
+        $pdf->MultiCellRow($datos);
+    }
+    
+    $pdf->Output('D', 'clientes_'.date('Y-m-d').'.pdf');
     exit;
 }
 ?>

@@ -88,28 +88,82 @@ if (isset($_POST['export_excel'])) {
     exit;
 }
 
-// Exportar reservas a PDF
-if (isset($_POST['export_pdf'])) {
-    require 'tcpdf.php';
-    $pdf = new TCPDF();
-    $pdf->AddPage();
-    $html = '<h1>Reporte de Reservas</h1><table border="1" cellpadding="5">
-             <tr><th>ID</th><th>Nombre del Cliente</th><th>Fecha</th><th>Hora</th><th>Número de Personas</th><th>Teléfono</th><th>Estado</th></tr>';
-    
-    while ($row = $resultado_reservas->fetch_assoc()) {
-        $html .= "<tr>
-                    <td>{$row['id']}</td>
-                    <td>{$row['nombre_cliente']}</td>
-                    <td>{$row['fecha']}</td>
-                    <td>{$row['hora']}</td>
-                    <td>{$row['numero_personas']}</td>
-                    <td>{$row['telefono']}</td>
-                    <td>{$row['estado']}</td>
-                  </tr>";
+require('fpdf/fpdf.php');
+class PDF extends FPDF {
+    function MultiCellRow($datos) {
+        $height = 6;
+        $x = $this->GetX();
+        $y = $this->GetY();
+        $max_y = $y;
+        
+        $this->MultiCell(10, $height, $datos['id'], 1, 'L');
+        $max_y = max($max_y, $this->GetY());
+        $this->SetXY($x + 10, $y);
+        
+        $this->MultiCell(40, $height, $datos['nombre_cliente'], 1, 'L');
+        $max_y = max($max_y, $this->GetY());
+        $this->SetXY($x + 50, $y);
+        
+        $this->MultiCell(30, $height, $datos['fecha'], 1, 'L');
+        $max_y = max($max_y, $this->GetY());
+        $this->SetXY($x + 80, $y);
+        
+        $this->MultiCell(20, $height, $datos['hora'], 1, 'L');
+        $max_y = max($max_y, $this->GetY());
+        $this->SetXY($x + 100, $y);
+        
+        $this->MultiCell(30, $height, $datos['numero_personas'], 1, 'L');
+        $max_y = max($max_y, $this->GetY());
+        $this->SetXY($x + 130, $y);
+        
+        $this->MultiCell(30, $height, $datos['telefono'], 1, 'L');
+        $max_y = max($max_y, $this->GetY());
+        $this->SetXY($x + 160, $y);
+        
+        $this->MultiCell(30, $height, $datos['estado'], 1, 'L');
+        $max_y = max($max_y, $this->GetY());
+        
+        $this->SetXY($x, $max_y);
     }
-    $html .= '</table>';
-    $pdf->writeHTML($html);
-    $pdf->Output('reservas.pdf', 'D');
+}
+
+if (isset($_POST['export_pdf'])) {
+    $pdf = new PDF('L', 'mm', 'A4');
+    $pdf->AddPage();
+    $pdf->SetMargins(10, 10, 10);
+    
+    $pdf->SetFont('Arial', 'B', 16);
+    $pdf->Cell(0, 10, 'Reporte de Reservas', 0, 1, 'C');
+    $pdf->Ln(5);
+    
+    $pdf->SetFont('Arial', 'B', 12);
+    $pdf->Cell(10, 10, 'ID', 1, 0, 'C');
+    $pdf->Cell(40, 10, 'Nombre del Cliente', 1, 0, 'C');
+    $pdf->Cell(30, 10, 'Fecha', 1, 0, 'C');
+    $pdf->Cell(20, 10, 'Hora', 1, 0, 'C');
+    $pdf->Cell(30, 10, '# Personas', 1, 0, 'C');
+    $pdf->Cell(30, 10, 'Telefono', 1, 0, 'C');
+    $pdf->Cell(30, 10, 'Estado', 1, 1, 'C');
+    
+    $pdf->SetFont('Arial', '', 11);
+    
+    $consulta = "SELECT * FROM reservas ORDER BY fecha ASC";
+    $resultado = $conn->query($consulta);
+    
+    while($row = $resultado->fetch_assoc()) {
+        $datos = array(
+            'id' => $row['id'],
+            'nombre_cliente' => utf8_decode($row['nombre_cliente']),
+            'fecha' => $row['fecha'],
+            'hora' => $row['hora'],
+            'numero_personas' => $row['numero_personas'],
+            'telefono' => $row['telefono'],
+            'estado' => $row['estado']
+        );
+        $pdf->MultiCellRow($datos);
+    }
+    
+    $pdf->Output('D', 'reservas_'.date('Y-m-d').'.pdf');
     exit;
 }
 ?>

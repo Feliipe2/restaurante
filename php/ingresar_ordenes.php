@@ -93,27 +93,86 @@ if (isset($_POST['export_excel'])) {
 }
 
 // Exportar órdenes a PDF
-if (isset($_POST['export_pdf'])) {
-    require 'tcpdf.php';
-    $pdf = new TCPDF();
-    $pdf->AddPage();
-    $html = '<h1>Reporte de Órdenes</h1><table border="1" cellpadding="5">
-             <tr><th>ID</th><th>Cliente</th><th>Fecha</th><th>Plato</th><th>Cantidad</th><th>Estado</th><th>Instrucciones</th></tr>';
-    
-    while ($row = $resultado_ordenes->fetch_assoc()) {
-        $html .= "<tr>
-                    <td>{$row['id']}</td>
-                    <td>{$row['nombre_cliente']}</td>
-                    <td>{$row['fecha']}</td>
-                    <td>{$row['nombre_plato']}</td>
-                    <td>{$row['cantidad']}</td>
-                    <td>{$row['estado']}</td>
-                    <td>{$row['instrucciones']}</td>
-                  </tr>";
+require('fpdf/fpdf.php');
+class PDF extends FPDF {
+    function MultiCellRow($datos) {
+        $height = 6;
+        $x = $this->GetX();
+        $y = $this->GetY();
+        $max_y = $y;
+        
+        $this->MultiCell(10, $height, $datos['id'], 1, 'L');
+        $max_y = max($max_y, $this->GetY());
+        $this->SetXY($x + 10, $y);
+        
+        $this->MultiCell(40, $height, $datos['nombre_cliente'], 1, 'L');
+        $max_y = max($max_y, $this->GetY());
+        $this->SetXY($x + 50, $y);
+        
+        $this->MultiCell(30, $height, $datos['fecha'], 1, 'L');
+        $max_y = max($max_y, $this->GetY());
+        $this->SetXY($x + 80, $y);
+        
+        $this->MultiCell(40, $height, $datos['nombre_plato'], 1, 'L');
+        $max_y = max($max_y, $this->GetY());
+        $this->SetXY($x + 120, $y);
+        
+        $this->MultiCell(20, $height, $datos['cantidad'], 1, 'L');
+        $max_y = max($max_y, $this->GetY());
+        $this->SetXY($x + 140, $y);
+        
+        $this->MultiCell(30, $height, $datos['estado'], 1, 'L');
+        $max_y = max($max_y, $this->GetY());
+        $this->SetXY($x + 170, $y);
+        
+        $this->MultiCell(60, $height, $datos['instrucciones'], 1, 'L');
+        $max_y = max($max_y, $this->GetY());
+        
+        $this->SetXY($x, $max_y);
     }
-    $html .= '</table>';
-    $pdf->writeHTML($html);
-    $pdf->Output('ordenes.pdf', 'D');
+}
+
+if (isset($_POST['export_pdf'])) {
+    $pdf = new PDF('L', 'mm', 'A4');
+    $pdf->AddPage();
+    $pdf->SetMargins(10, 10, 10);
+    
+    $pdf->SetFont('Arial', 'B', 16);
+    $pdf->Cell(0, 10, 'Reporte de Ordenes', 0, 1, 'C');
+    $pdf->Ln(5);
+    
+    $pdf->SetFont('Arial', 'B', 12);
+    $pdf->Cell(10, 10, 'ID', 1, 0, 'C');
+    $pdf->Cell(40, 10, 'Cliente', 1, 0, 'C');
+    $pdf->Cell(30, 10, 'Fecha', 1, 0, 'C');
+    $pdf->Cell(40, 10, 'Plato', 1, 0, 'C');
+    $pdf->Cell(20, 10, 'Cantidad', 1, 0, 'C');
+    $pdf->Cell(30, 10, 'Estado', 1, 0, 'C');
+    $pdf->Cell(60, 10, 'Instrucciones', 1, 1, 'C');
+    
+    $pdf->SetFont('Arial', '', 11);
+    
+    $consulta = "SELECT ordenes.id, reservas.nombre_cliente, reservas.fecha, menu.nombre_plato, ordenes.cantidad, ordenes.estado, ordenes.instrucciones 
+                 FROM ordenes 
+                 JOIN reservas ON ordenes.id_reserva = reservas.id 
+                 JOIN menu ON ordenes.id_menu = menu.id 
+                 ORDER BY reservas.fecha ASC";
+    $resultado = $conectar->query($consulta);
+    
+    while($row = $resultado->fetch_assoc()) {
+        $datos = array(
+            'id' => $row['id'],
+            'nombre_cliente' => utf8_decode($row['nombre_cliente']),
+            'fecha' => $row['fecha'],
+            'nombre_plato' => utf8_decode($row['nombre_plato']),
+            'cantidad' => $row['cantidad'],
+            'estado' => $row['estado'],
+            'instrucciones' => utf8_decode($row['instrucciones'])
+        );
+        $pdf->MultiCellRow($datos);
+    }
+    
+    $pdf->Output('D', 'ordenes_'.date('Y-m-d').'.pdf');
     exit;
 }
 ?>
