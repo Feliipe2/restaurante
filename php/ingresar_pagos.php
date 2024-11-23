@@ -91,12 +91,14 @@ if (isset($_POST['export_excel'])) {
 if (isset($_POST['export_pdf'])) {
     require('fpdf/fpdf.php');
     class PDF extends FPDF {
+        // Cabecera de página
         function MultiCellRow($datos) {
+            // Altura de la fila
             $height = 6;
             $x = $this->GetX();
             $y = $this->GetY();
             $max_y = $y;
-
+            // Mostrar los datos en celdas múltiples
             $this->MultiCell(20, $height, $datos['id'], 1, 'L');
             $max_y = max($max_y, $this->GetY());
             $this->SetXY($x + 20, $y);
@@ -119,7 +121,7 @@ if (isset($_POST['export_pdf'])) {
             $this->SetXY($x, $max_y);
         }
     }
-
+// Crear el archivo PDF
     $pdf = new PDF('L', 'mm', 'A4');
     $pdf->AddPage();
     $pdf->SetMargins(10, 10, 10);
@@ -136,7 +138,7 @@ if (isset($_POST['export_pdf'])) {
     $pdf->Cell(50, 10, 'Metodo de Pago', 1, 1, 'C');
 
     $pdf->SetFont('Arial', '', 11);
-
+//sirve para mostrar los datos en el pdf
     $consulta = "SELECT pagos.id, clientes.nombre AS cliente_nombre, ordenes.id AS orden_id, pagos.monto, medios_de_pago.nombre_medio AS metodo_pago 
                  FROM pagos 
                  JOIN clientes ON pagos.id_cliente = clientes.id 

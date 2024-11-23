@@ -107,6 +107,7 @@ if (isset($_POST['export_excel'])) {
     fclose($output);
     exit;
 }
+
 // Función para exportar el menú a PDF
 require('fpdf/fpdf.php');
 class PDF extends FPDF {

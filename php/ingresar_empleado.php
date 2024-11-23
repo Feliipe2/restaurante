@@ -133,6 +133,7 @@ class PDF extends FPDF {
 }
 
 if (isset($_POST['export_pdf'])) {
+    // Crear el archivo PDF
     $pdf = new PDF('L', 'mm', 'A4');
     $pdf->AddPage();
     $pdf->SetMargins(10, 10, 10);
@@ -140,7 +141,7 @@ if (isset($_POST['export_pdf'])) {
     $pdf->SetFont('Arial', 'B', 16);
     $pdf->Cell(0, 10, 'Reporte de Empleados', 0, 1, 'C');
     $pdf->Ln(5);
-    
+    // Encabezados de las columnas
     $pdf->SetFont('Arial', 'B', 12);
     $pdf->Cell(10, 10, 'ID', 1, 0, 'C');
     $pdf->Cell(40, 10, 'Nombre', 1, 0, 'C');
@@ -150,10 +151,10 @@ if (isset($_POST['export_pdf'])) {
     $pdf->Cell(30, 10, 'Telefono', 1, 1, 'C');
     
     $pdf->SetFont('Arial', '', 11);
-    
+    // Mostrar los datos
     $consulta = "SELECT * FROM empleados ORDER BY nombre ASC";
     $resultado = $conectar->query($consulta);
-    
+    // Escribir los datos
     while($row = $resultado->fetch_assoc()) {
         $datos = array(
             'id' => $row['id'],

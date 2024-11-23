@@ -88,9 +88,11 @@ if (isset($_POST['export_excel'])) {
     exit;
 }
 
+// Exportar reservas a PDF
 require('fpdf/fpdf.php');
 class PDF extends FPDF {
     function MultiCellRow($datos) {
+        // Altura de la fila
         $height = 6;
         $x = $this->GetX();
         $y = $this->GetY();
@@ -128,6 +130,7 @@ class PDF extends FPDF {
 }
 
 if (isset($_POST['export_pdf'])) {
+    // Crear el archivo PDF
     $pdf = new PDF('L', 'mm', 'A4');
     $pdf->AddPage();
     $pdf->SetMargins(10, 10, 10);
@@ -135,7 +138,7 @@ if (isset($_POST['export_pdf'])) {
     $pdf->SetFont('Arial', 'B', 16);
     $pdf->Cell(0, 10, 'Reporte de Reservas', 0, 1, 'C');
     $pdf->Ln(5);
-    
+    // Encabezados de las columnas
     $pdf->SetFont('Arial', 'B', 12);
     $pdf->Cell(10, 10, 'ID', 1, 0, 'C');
     $pdf->Cell(40, 10, 'Nombre del Cliente', 1, 0, 'C');
@@ -149,7 +152,7 @@ if (isset($_POST['export_pdf'])) {
     
     $consulta = "SELECT * FROM reservas ORDER BY fecha ASC";
     $resultado = $conn->query($consulta);
-    
+    // Escribir los datos
     while($row = $resultado->fetch_assoc()) {
         $datos = array(
             'id' => $row['id'],

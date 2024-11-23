@@ -115,6 +115,7 @@ class PDF extends FPDF {
 }
 
 if (isset($_POST['export_pdf'])) {
+    // Crear el objeto PDF
     $pdf = new PDF('L', 'mm', 'A4');
     $pdf->AddPage();
     $pdf->SetMargins(10, 10, 10);
@@ -131,10 +132,10 @@ if (isset($_POST['export_pdf'])) {
     $pdf->Cell(80, 10, 'Direccion', 1, 1, 'C');
     
     $pdf->SetFont('Arial', '', 11);
-    
+    // Consulta SQL para obtener los clientes
     $consulta = "SELECT * FROM clientes ORDER BY nombre ASC";
     $resultado = $conectar->query($consulta);
-    
+    // Mostrar los datos
     while($row = $resultado->fetch_assoc()) {
         $datos = array(
             'id' => $row['id'],
